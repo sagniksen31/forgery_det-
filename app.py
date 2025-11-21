@@ -2,8 +2,18 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from metadata_viewer_v2 import analyze_metadata_v2
 import tempfile, os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 app = FastAPI()
+
+# Serve static website
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+def root():
+    return FileResponse("static/index.html")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,3 +33,4 @@ async def metadata_check(file: UploadFile = File(...)):
         return report
     finally:
         os.unlink(tmp.name)
+
