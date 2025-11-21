@@ -1,1 +1,914 @@
+<!DOCTYPE html>
+<!-- Admin Login & Delete Only via Admin Section, Names Visible to All.
+     Blockchain & AI/ML Integration for Certificate Immutability and Forgery Detection -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificate Upload and Viewing Portal (Blockchain Secured)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Web3.js (Ethereum, loaded from CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.1/dist/web3.min.js"></script>
+    <!-- SHA-256 (For hashing) -->
+    <script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/src/sha256.min.js"></script>
+    <style>
+        /* [CSS unchanged from original] */
+        :root {
+            --bg: #181e26;
+            --bg2: #232d3a;
+            --fg: #e4e7ef;
+            --accent: #3eaafe;
+            --panel: #222d38;
+            --input-bg: #252c39;
+            --error: #ed4e6e;
+            --success: #29d17a;
+            --border: #38404b;
+        }
+        body { font-family: Arial, sans-serif; background: var(--bg); margin: 0; color: var(--fg); padding: 0; min-height: 100vh;}
+        header {
+            background: var(--accent); color: #fff; padding: 25px 0 18px 0;
+            text-align: center; letter-spacing: 0.03em; box-shadow: 0 2px 12px #1976d235;
+        }
+        main { max-width: 660px; margin: 32px auto 40px auto; background: var(--panel); border-radius: 10px; box-shadow: 0 0 30px #141b2e5a; padding: 38px 28px 40px 28px;}
+        .tabs {
+            display: flex; border-bottom: 2px solid var(--border);
+            margin-bottom: 28px; background: var(--bg2); border-radius: 7px 7px 0 0;
+        }
+        .tab-btn { flex: 1; padding: 16px 0 10px 0; cursor: pointer; background: none; border: none; font-size: 1.13rem; color: #bfcded; border-bottom: 3px solid transparent; transition: color .25s, border-color .25s; font-weight: 500; letter-spacing: 0.01em;}
+        .tab-btn.active { color: var(--accent); border-bottom: 3px solid var(--accent); background: #263347;}
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+        label { display: block; margin-top: 15px; margin-bottom: 4px; font-size: 1rem; letter-spacing: 0.01em;}
+        input, select { width: 100%; background: var(--input-bg); color: var(--fg); padding: 10px 10px; margin-bottom: 10px; border: 1.3px solid var(--border); border-radius: 4px; font-size: 1.04rem; box-sizing: border-box;}
+        input[type="file"] { padding: 2px; color-scheme: dark;}
+        .button { background: var(--accent); color: #fff; border: none; padding: 13px 36px; border-radius: 5px; font-size: 1.07rem; cursor: pointer; margin-top: 12px; transition: background .23s, color .23s; font-weight: 600; letter-spacing: 0.04em; box-shadow: 0 0 10px #40abe72c;}
+        .button:hover { background: #205683; color: #def2fe;}
+        .admin-btn { background: #ed4e6e; color: #fff; border: none; padding: 8px 20px; border-radius: 4px; font-size: 0.98rem; cursor: pointer; margin-left: 5px; margin-bottom: 10px; transition: background .17s, color .17s; font-weight: 500;}
+        .admin-btn:hover { background: #be274d;}
+        .status { margin: 18px 0 0 0; color: var(--success); font-weight: 600;}
+        .error { color: var(--error); margin-top: 12px;}
+        .certificate-display { margin-top: 23px; padding: 19px 15px 15px 18px; border: 1px solid #2d3848; background: #242f3c; border-radius: 6px; color: var(--fg);}
+        .certificate-display h3 { margin-bottom: 14px;}
+        iframe, .cert-img { margin-top: 13px; max-width: 99%; border: 1px solid #3c485b; border-radius: 6px; background: #232d3a;}
+        .cert-img { max-height: 410px; display: block; box-shadow: 0 3px 24px #272f3e81;}
+        .names-section { margin-top: 38px; padding: 22px 15px 8px 15px; background: #1e2531; border-radius: 7px; border: 1px solid #253047; box-shadow: 0 4px 30px #10182a27;}
+        .names-section h2 { font-size: 1.16rem; color: var(--accent); margin-bottom: 10px; letter-spacing: 0.04em; font-weight: 600;}
+        .names-list { list-style: none; padding: 0 7px; margin: 0;}
+        .names-list li { border-bottom: 1px dashed #344057; padding: 7px 0 4px 1px; font-size: 1.02rem; color: #b7cfff;}
+        .names-list li:last-child { border-bottom: none;}
+        .no-names { color: #7cade2; font-style: italic; font-size: 0.97rem; padding: 5px 2px; margin-top: 4px; opacity: 0.86;}
+        .admin-status { margin: 10px 0 0 0; color: var(--success); font-size: 1rem; font-weight: 500;}
+        .admin-section { margin-top: 40px; padding: 28px 20px 20px 20px; background: #21283a; border-radius: 8px; border: 1px solid #294168; box-shadow: 0 4px 28px #10182a23; max-width: 405px; margin-left: auto; margin-right: auto;}
+        .admin-section h2 { font-size: 1.06rem; margin-bottom: 13px; letter-spacing: 0.02em; color: var(--accent);}
+        .admin-inputs label { margin-top: 0; margin-bottom: 4px;}
+        .admin-inputs input[type="password"] { width: 100%; font-size: 1.05em;}
+        .hide { display: none !important; }
+        .admin-student-list { margin: 28px 0 0 0; background: #29334a; border-radius: 7px; box-shadow: 0 4px 14px #16223b38; padding: 16px 11px 6px 11px; border: 1px solid #303d59;}
+        .admin-student-list h3 { font-size: 1.1rem; font-weight: 600; color: var(--accent); margin-bottom: 10px; letter-spacing: 0.01em;}
+        .admin-student-table { width: 100%; border-collapse: collapse; margin-bottom: 8px;}
+        .admin-student-table th, .admin-student-table td { border-bottom: 1px solid #405173; padding: 7px 4px; font-size: 0.98rem; color: #dbeeff; text-align: left;}
+        .admin-student-table th { color: #8ad2ff; font-weight: 700;}
+        .admin-student-table tr:last-child td { border-bottom: none; }
+        .admin-action-btn { background: #ed4e6e; color: #fff; border: none; border-radius: 3px; padding: 4px 12px; cursor: pointer; font-size: 0.95em; margin-right: 3px; margin-bottom: 1px; transition: background .18s;}
+        .admin-action-btn:hover { background: #be274d; }
+        .admin-edit-btn { background: #3eaafe; color: #fff; margin-right: 5px;}
+        .admin-edit-btn:hover { background: #205683; }
+        .admin-modal-bg { position: fixed; top: 0; left: 0; right:0; bottom:0; background: #000a; z-index: 1002; display: flex; align-items: center; justify-content: center;}
+        .admin-modal { background: #22283a; border-radius: 10px; padding: 30px 30px 22px 30px; min-width: 320px; max-width: 99vw; box-shadow: 0 4px 16px #111a2947; border: 1.5px solid #365c8ada; z-index: 1003; position: relative;}
+        .admin-modal h2 { margin-top: 0; margin-bottom: 24px; color: var(--accent); font-size: 1.14rem;}
+        .admin-modal label { font-weight: 500; font-size: 1rem;}
+        .admin-modal input, .admin-modal select { width: 99%; font-size: 1.03rem; margin-bottom: 15px;}
+        .admin-modal .admin-modal-btns { margin-top: 3px; text-align: right;}
+        .admin-modal .button, .admin-modal .admin-action-btn { margin-top: 2px; margin-left: 7px;}
+        .admin-modal-close { position: absolute; right: 17px; top: 12px; background: none; border: none; font-size: 1.2em; color: #e57e25; cursor: pointer; font-weight: 700; line-height: 1;}
+        @media (max-width:670px) { main { max-width: 99vw; padding: 16px 2vw 36px 2vw; } .admin-section { max-width: 99vw; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Certificate Portal</h1>
+        <p>Upload &amp; View Student Certificates<br>
+        <span style="font-size:0.93em;color:#75efdd">Powered by Ethereum Blockchain &amp; AI</span>
+        </p>
+    </header>
+    <main>
+        <div class="tabs">
+            <button id="uploadTab" class="tab-btn active">For Institutions (Upload)</button>
+            <button id="viewTab" class="tab-btn">For Students (View)</button>
+            <button id="namesTab" class="tab-btn">Uploaded Names</button>
+            <button id="adminTab" class="tab-btn">Admin Login</button>
+        </div>
+        <!-- Upload Section -->
+        <section id="uploadSection" class="form-section active">
+            <h2>Institution Upload Certificate</h2>
+            <form id="uploadForm" enctype="multipart/form-data" autocomplete="off">
+                <label for="studentName">Student Name</label>
+                <input type="text" id="studentName" name="studentName" required>
+                <label for="studentID">Student ID / Roll No.</label>
+                <input type="text" id="studentID" name="studentID" required>
+                <label for="certificateTitle">Certificate Title</label>
+                <input type="text" id="certificateTitle" name="certificateTitle" required>
+                <label for="issueDate">Date of Issue</label>
+                <input type="date" id="issueDate" name="issueDate" required>
+                <label for="certificateFile">Upload Certificate (PDF, JPG, PNG)</label>
+                <input type="file" id="certificateFile" name="certificateFile" accept=".pdf,.jpg,.jpeg,.png" required>
+                <button type="submit" class="button">Upload Certificate</button>
+            </form>
+            <div class="status" id="uploadStatus"></div>
+            <div id="blockchainStatus" class="status" style="margin-top:8px;font-size:0.98em;"></div>
+            <div id="aiStatus" class="status" style="margin-top:4px;font-size:0.94em;"></div>
+        </section>
+        <!-- View Section -->
+        <section id="viewSection" class="form-section">
+            <h2>Student View My Certificate</h2>
+            <form id="viewForm" autocomplete="off">
+                <label for="searchStudentID">Enter Your Student ID / Roll No.</label>
+                <input type="text" id="searchStudentID" name="searchStudentID" required>
+                <button type="submit" class="button">View Certificate</button>
+            </form>
+            <div id="viewStatus" class="status"></div>
+            <div id="certificateDisplay" class="certificate-display" style="display:none"></div>
+            <div id="blockchainVerifyStatus" class="status" style="margin-top:8px;font-size:0.98em;"></div>
+            <div id="aiVerifyStatus" class="status" style="margin-top:4px;font-size:0.95em;"></div>
+        </section>
+        <!-- Names List Section -->
+        <section id="namesSection" class="form-section">
+            <div class="names-section">
+                <h2>List of Students with Uploaded Certificates</h2>
+                <ul class="names-list" id="namesList">
+                    <!-- Names will be injected here -->
+                </ul>
+                <div id="noNamesMsg" class="no-names" style="display:none;">No certificates uploaded yet.</div>
+            </div>
+        </section>
+        <!-- Admin Login Section -->
+        <section id="adminSection" class="form-section">
+            <div class="admin-section" id="adminSectionBox">
+                <h2>Admin Login</h2>
+                <div id="adminLoginFormBox" class="admin-inputs">
+                    <form id="adminLoginForm" autocomplete="off">
+                        <label for="adminPassword">Enter Admin Password</label>
+                        <input type="password" id="adminPassword" name="adminPassword" required autocomplete="current-password">
+                        <button type="submit" class="admin-btn" id="adminLoginBtn">Login</button>
+                    </form>
+                    <div id="adminLoginStatus" class="status"></div>
+                </div>
+                <div id="adminPanel" class="hide">
+                    <div style="margin-bottom:15px;">You are logged in as <b>Admin</b>.</div>
+                    <button id="deleteAllBtn" type="button" class="admin-btn" style="background:#ed4e6e;">Delete All Student Data</button>
+                    <div id="adminStatus" class="admin-status"></div>
+                    <button id="adminLogoutBtn" type="button" class="admin-btn" style="margin-top:16px;background:#4e586e;">Logout</button>
+                    <div class="admin-student-list" id="adminStudentListBox" style="margin-top:22px;">
+                        <h3>Manage Students</h3>
+                        <div id="adminStudentListContent">
+                            <!-- JS will fill here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script>
+        // ==============[ Begin: Blockchain & AI config ]===================
+        // Replace with your contract ABI & address - this is a minimal demo!
+        const ETHEREUM_CONTRACT_ABI = [
+          {
+            "inputs": [
+              { "internalType": "string", "name": "studentID", "type": "string" },
+              { "internalType": "string", "name": "certHash", "type": "string" }
+            ],
+            "name": "storeCertificateHash",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [
+              { "internalType": "string", "name": "studentID", "type": "string" }
+            ],
+            "name": "getCertificateHash",
+            "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+            "stateMutability": "view",
+            "type": "function"
+          }
+        ];
+        // Replace with deployed contract address on your chosen testnet/mainnet!
+        const ETHEREUM_CONTRACT_ADDRESS = "0x123456789abcdef0123456789abcdef012345678"; // <-- Replace!
+        // Replace with a deployed public/storage address for proof of concept.
 
+        let web3;
+        let certContract;
+        let blockchainEnabled = false;
+
+        // Simple utility to initialize web3 and the contract object
+        async function initWeb3() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                try {
+                    // Request account access if needed
+                    await window.ethereum.request({ method: "eth_requestAccounts" });
+                    blockchainEnabled = true;
+                    certContract = new web3.eth.Contract(
+                        ETHEREUM_CONTRACT_ABI,
+                        ETHEREUM_CONTRACT_ADDRESS
+                    );
+                } catch (err) {
+                    blockchainEnabled = false;
+                    document.getElementById("blockchainStatus").textContent = "❌ Blockchain wallet access denied. Hash not stored on Ethereum.";
+                    document.getElementById("blockchainStatus").style.color = "#ed4e6e";
+                }
+            } else {
+                blockchainEnabled = false;
+                document.getElementById("blockchainStatus").textContent = "❌ Ethereum wallet (MetaMask/etc) not detected. Hash not stored on Ethereum.";
+                document.getElementById("blockchainStatus").style.color = "#ed4e6e";
+            }
+        }
+
+        // ==============[ End Blockchain Config ]======================
+
+        // ==============[ Begin: AI/ML config ]===================
+        const AI_API_URL = "/metadata-check";
+
+        // Convert a Base64 DataURL into a Blob
+        function dataURLtoBlob(dataURL) {
+            const arr = dataURL.split(",");
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            return new Blob([u8arr], { type: mime });
+        }
+
+        async function evaluateCertificateAI(certificateData, fileType) {
+            try {
+                // Convert the base64 fileData from FileReader → Blob
+                const blob = dataURLtoBlob(certificateData);
+
+                // Prepare multipart/form-data
+                const fd = new FormData();
+                fd.append("file", blob, "certificate.pdf");
+
+                // POST to FastAPI
+                const resp = await fetch(AI_API_URL, {
+                    method: "POST",
+                    body: fd
+                });
+
+                // Response is your metadata viewer output
+                return await resp.json();  // { suspicious, reasons, score, ... }
+
+            } catch (err) {
+                return {
+                    suspicious: true,
+                    score: 0,
+                    reasons: ["Frontend failed to connect to backend"],
+                    error: String(err)
+                };
+            }
+        }
+        // ==============[ End AI/ML config ]===================
+
+
+        // ======= Tab Navigation =======
+        const uploadTab = document.getElementById('uploadTab');
+        const viewTab = document.getElementById('viewTab');
+        const namesTab = document.getElementById('namesTab');
+        const adminTab = document.getElementById('adminTab');
+        const uploadSection = document.getElementById('uploadSection');
+        const viewSection = document.getElementById('viewSection');
+        const namesSection = document.getElementById('namesSection');
+        const adminSection = document.getElementById('adminSection');
+
+        function showSection(sectionToShow) {
+            [uploadTab, viewTab, namesTab, adminTab].forEach(tab => tab.classList.remove('active'));
+            [uploadSection, viewSection, namesSection, adminSection].forEach(sec => sec.classList.remove('active'));
+            if(sectionToShow === "upload") {
+                uploadTab.classList.add('active');
+                uploadSection.classList.add('active');
+            } else if(sectionToShow === "view") {
+                viewTab.classList.add('active');
+                viewSection.classList.add('active');
+            } else if(sectionToShow === "names") {
+                namesTab.classList.add('active');
+                namesSection.classList.add('active');
+                renderNamesList();
+            } else if(sectionToShow === "admin") {
+                adminTab.classList.add('active');
+                adminSection.classList.add('active');
+                handleAdminState();
+            }
+        }
+        uploadTab.onclick = function() { showSection("upload"); };
+        viewTab.onclick = function() { showSection("view"); };
+        namesTab.onclick = function() { showSection("names"); };
+        adminTab.onclick = function() { showSection("admin"); };
+
+        // ======= Certificate Data utility (localStorage) =======
+        function loadCertificates() {
+            return JSON.parse(localStorage.getItem('certificatesByID') || '{}');
+        }
+        function saveCertificates(certs) {
+            localStorage.setItem('certificatesByID', JSON.stringify(certs));
+        }
+        function clearCertificates() {
+            localStorage.removeItem('certificatesByID');
+        }
+
+        // ============ Certificate Upload ============
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const blockchainStatus = document.getElementById('blockchainStatus');
+        const aiStatus = document.getElementById('aiStatus');
+
+        // Init web3 as soon as page loads (may prompt user)
+        window.addEventListener("DOMContentLoaded", initWeb3);
+
+        uploadForm.onsubmit = async function(e) {
+            e.preventDefault();
+            uploadStatus.textContent = "";
+            blockchainStatus.textContent = "";
+            aiStatus.textContent = "";
+
+            // Get Data
+            const studentName = uploadForm.studentName.value.trim();
+            const studentID = uploadForm.studentID.value.trim();
+            const certificateTitle = uploadForm.certificateTitle.value.trim();
+            const issueDate = uploadForm.issueDate.value;
+            const certFile = uploadForm.certificateFile.files[0];
+
+            // Validate file type & size
+            if (!certFile) {
+                uploadStatus.textContent = "Please choose a certificate file.";
+                uploadStatus.className = "status error";
+                return;
+            }
+            const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+            if (!allowedTypes.includes(certFile.type)) {
+                uploadStatus.textContent = "File must be PDF, JPG, or PNG.";
+                uploadStatus.className = "status error";
+                return;
+            }
+            if (certFile.size > 8 * 1024 * 1024) {
+                uploadStatus.textContent = "File is too large (max 8MB)";
+                uploadStatus.className = "status error";
+                return;
+            }
+
+            // Read file as DataURL
+            const reader = new FileReader();
+            reader.onload = async function(ev) {
+                const certificates = loadCertificates();
+                const fileData = ev.target.result;
+
+                // --------- 1. AI/ML Verification before saving/blockchain -----------
+                aiStatus.textContent = "🔎 Checking authenticity (metadata, OCR, structure)...";
+                aiStatus.className = "status";
+
+                let aiVerdict = {};
+                let forceProceed = false;
+
+                try {
+                    aiVerdict = await evaluateCertificateAI(fileData, certFile.type);
+
+                    // FastAPI returns:
+                    // { suspicious: bool, score: float, reasons: [] }
+
+                    if (aiVerdict.suspicious === false) {
+                        aiStatus.textContent = "✅ Passed authenticity & metadata checks.";
+                        aiStatus.style.color = "#29d17a";
+
+                    } else if (aiVerdict.suspicious === true) {
+                        const reasonText = (aiVerdict.reasons && aiVerdict.reasons.length)
+                            ? aiVerdict.reasons.join("; ")
+                            : "Unknown anomaly";
+
+                        aiStatus.textContent =
+                            "❌ Suspicious certificate detected: " + reasonText;
+                        aiStatus.style.color = "#ed4e6e";
+
+                        forceProceed = !confirm(
+                            "⚠ Metadata/OCR flags this as suspicious.\nReasons:\n" +
+                            reasonText +
+                            "\n\nOverride and upload anyway?"
+                        );
+                        if (forceProceed) return;
+
+                    } else {
+                        aiStatus.textContent = "⚠ Unexpected AI response. Proceed with caution.";
+                        aiStatus.style.color = "#f7b54b";
+                    }
+
+                } catch (err) {
+                    aiStatus.textContent = "⚠ Could not reach AI/metadata server. Manual check recommended.";
+                    aiStatus.style.color = "#f7b54b";
+                }
+
+
+                // --------- 2. Hash the certificate file ----------
+                const certHash = sha256(fileData); // simple sha256 hash; could use stronger/more modern hash as desired
+
+                // --------- 3. Save local ----------
+                certificates[studentID] = {
+                    studentName,
+                    certificateTitle,
+                    issueDate,
+                    fileType: certFile.type,
+                    certFileName: certFile.name,
+                    certFileData: fileData,
+                    certHash
+                };
+                saveCertificates(certificates);
+
+                // --------- 4. Blockchain write (store hash on Ethereum) ----------
+                blockchainStatus.style.color = "#29d17a";
+                blockchainStatus.textContent = "⏳ Writing hash to Ethereum. Confirm wallet transaction...";
+
+                if (blockchainEnabled && certContract) {
+                    try {
+                        // Get current user address (first wallet)
+                        const accounts = await web3.eth.getAccounts();
+                        const fromAddr = accounts[0];
+                        await certContract.methods.storeCertificateHash(studentID, certHash).send({from: fromAddr});
+                        blockchainStatus.textContent = "✅ Certificate hash stored on Ethereum!";
+                        blockchainStatus.style.color = "#29d17a";
+                    } catch (err) {
+                        blockchainStatus.textContent = "❌ Blockchain write failed (not saved to Ethereum): " + (err && err.message ? err.message : err);
+                        blockchainStatus.style.color = "#ed4e6e";
+                    }
+                } else {
+                    blockchainStatus.textContent = "❌ Not connected to blockchain wallet. Hash saved locally only.";
+                    blockchainStatus.style.color = "#ed4e6e";
+                }
+
+                uploadStatus.textContent = "✅ Certificate uploaded successfully.";
+                uploadStatus.className = "status";
+                uploadForm.reset();
+                if (namesSection.classList.contains('active')) renderNamesList();
+                if (adminPanel.classList.contains('hide') === false) renderAdminStudentList();
+            };
+            reader.onerror = function() {
+                uploadStatus.textContent = "Failed to read file.";
+                uploadStatus.className = "status error";
+            };
+            reader.readAsDataURL(certFile);
+        };
+
+        // ============ Certificate Viewing ============
+        const viewForm = document.getElementById('viewForm');
+        const viewStatus = document.getElementById('viewStatus');
+        const certificateDisplay = document.getElementById('certificateDisplay');
+        const blockchainVerifyStatus = document.getElementById('blockchainVerifyStatus');
+        const aiVerifyStatus = document.getElementById('aiVerifyStatus');
+
+        viewForm.onsubmit = async function(e) {
+            e.preventDefault();
+            certificateDisplay.innerHTML = "";
+            certificateDisplay.style.display = "none";
+            viewStatus.textContent = "";
+            blockchainVerifyStatus.textContent = "";
+            aiVerifyStatus.textContent = "";
+
+            const studentID = viewForm.searchStudentID.value.trim();
+            if (!studentID) {
+                viewStatus.textContent = "Please enter your Student ID.";
+                viewStatus.className = "status error";
+                return;
+            }
+            const certificates = loadCertificates();
+            if (!certificates[studentID]) {
+                viewStatus.textContent = "No certificate found for this Student ID.";
+                viewStatus.className = "status error";
+                return;
+            }
+            const cert = certificates[studentID];
+
+            // Display info and certificate
+            let certHTML = `
+                <h3>${cert.certificateTitle || ''}</h3>
+                <div><b>Student Name:</b> ${cert.studentName || ''}</div>
+                <div><b>Student ID:</b> ${studentID}</div>
+                <div><b>Date of Issue:</b> ${cert.issueDate || ''}</div>
+                <div><b>File Name:</b> ${cert.certFileName ? cert.certFileName : '<span style="color:#ed4e6e;">(No certificate file present)</span>'}</div>
+                <div><b>Certificate Hash:</b> <span style="color:#8ad2ff;">${cert.certHash || '(none)'}</span></div>
+            `;
+            if (cert.fileType === "application/pdf" && cert.certFileData) {
+
+                // Convert base64 DataURL → Blob
+                const pdfBlob = dataURLtoBlob(cert.certFileData);
+
+                // Create a temporary blob URL that browsers can show
+                const pdfURL = URL.createObjectURL(pdfBlob);
+
+                certHTML += `
+                    <iframe src="${pdfURL}" type="application/pdf" width="100%" height="420px"></iframe>
+                    <br><a href="${pdfURL}" download="${cert.certFileName}"
+                        class="button" style="margin-top:13px;font-size:0.96em;">
+                        Download PDF
+                    </a>
+                `;
+            } else if (cert.fileType && cert.fileType.startsWith('image/') && cert.certFileData) {
+                certHTML += `
+                    <img src="${cert.certFileData}" alt="Certificate Image" class="cert-img">
+                    <br><a href="${cert.certFileData}" download="${cert.certFileName}" class="button" style="margin-top:13px;font-size:0.96em;">Download Image</a>
+                `;
+            } else {
+                certHTML += `<div style="color:#ed4e6e;margin-top:9px;">No certificate file is available for this record.</div>`;
+            }
+            certificateDisplay.innerHTML = certHTML;
+            certificateDisplay.style.display = 'block';
+            viewStatus.textContent = "";
+
+            // ============= 1. Blockchain verification (compare local vs chain) ===============
+            // Use cert.certHash for studentID, check on chain
+            blockchainVerifyStatus.textContent = "⏳ Verifying certificate hash on Ethereum...";
+            blockchainVerifyStatus.style.color = "#29d17a";
+            if (blockchainEnabled && certContract) {
+                try {
+                    const hashOnChain = await certContract.methods.getCertificateHash(studentID).call();
+                    if (hashOnChain && cert.certHash && hashOnChain === cert.certHash) {
+                        blockchainVerifyStatus.textContent = "✅ Certificate hash matches Ethereum blockchain. This record is authentic & immutable.";
+                        blockchainVerifyStatus.style.color = "#29d17a";
+                    } else if (hashOnChain && cert.certHash && hashOnChain !== cert.certHash) {
+                        blockchainVerifyStatus.textContent = "❌ The uploaded certificate does not match the blockchain registry! There may be an overwrite or tampering.";
+                        blockchainVerifyStatus.style.color = "#ed4e6e";
+                    } else {
+                        blockchainVerifyStatus.textContent = "⚠️ No hash found on the blockchain for this Student ID. Verify with issuer.";
+                        blockchainVerifyStatus.style.color = "#f7b54b";
+                    }
+                } catch (err) {
+                    blockchainVerifyStatus.textContent = "⚠️ Error querying blockchain for verification: " + (err && err.message ? err.message : err);
+                    blockchainVerifyStatus.style.color = "#ed4e6e";
+                }
+            } else {
+                blockchainVerifyStatus.textContent = "❌ Not connected to Ethereum. Cannot verify on blockchain.";
+                blockchainVerifyStatus.style.color = "#ed4e6e";
+            }
+
+            // ============= 2. AI/ML model (detect formatting or forgery) ===============
+            aiVerifyStatus.textContent = "🔎 Running AI/ML forgery/authenticity check...";
+            aiVerifyStatus.className = "status";
+            try {
+                const aiVerdict = await evaluateCertificateAI(cert.certFileData, cert.fileType || "");
+                if (aiVerdict && aiVerdict.label) {
+                    if (aiVerdict.label === "genuine" || aiVerdict.score > 0.7) {
+                        aiVerifyStatus.textContent = "✅ AI/ML model confirms authenticity and valid formatting.";
+                        aiVerifyStatus.style.color = "#29d17a";
+                    } else if (aiVerdict.label === "forgery" || (aiVerdict.score && aiVerdict.score < 0.4)) {
+                        aiVerifyStatus.textContent = "❌ AI/ML suspects forgery or anomaly: " + (aiVerdict.reason || "Low authenticity score");
+                        aiVerifyStatus.style.color = "#ed4e6e";
+                    } else {
+                        aiVerifyStatus.textContent = "⚠️ AI/ML result: " + (aiVerdict.reason || aiVerdict.label);
+                        aiVerifyStatus.style.color = "#f7b54b";
+                    }
+                } else {
+                    aiVerifyStatus.textContent = "⚠️ AI/ML model not available. Manual review recommended.";
+                    aiVerifyStatus.style.color = "#f7b54b";
+                }
+            } catch {
+                aiVerifyStatus.textContent = "⚠️ AI/ML check failed. Manual authenticity review advised.";
+                aiVerifyStatus.style.color = "#f7b54b";
+            }
+        };
+
+        // ============ Uploaded Names List =============
+        function renderNamesList() {
+            const namesListEl = document.getElementById('namesList');
+            const noNamesMsg = document.getElementById('noNamesMsg');
+            const certs = loadCertificates();
+            const lst = Object.entries(certs).map(([id, obj]) => ({
+                name: obj.studentName
+            }));
+            namesListEl.innerHTML = '';
+            if(lst.length === 0) {
+                noNamesMsg.style.display = '';
+            } else {
+                noNamesMsg.style.display = 'none';
+                lst.sort((a,b)=>a.name.localeCompare(b.name));
+                lst.forEach(entry => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<b>${entry.name}</b>`;
+                    namesListEl.appendChild(li);
+                });
+            }
+        }
+
+        // ============ Admin Login / Panel ===========
+        // Admin password in code for demo only. In production use env/server.
+        const ADMIN_PASSWORD = "admin123"; // TODO: Change this in real use
+
+        let isAdminLoggedIn = false;
+
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        const adminPasswordInput = document.getElementById('adminPassword');
+        const adminLoginStatus = document.getElementById('adminLoginStatus');
+        const adminPanel = document.getElementById('adminPanel');
+        const adminLoginFormBox = document.getElementById('adminLoginFormBox');
+        const adminStatus = document.getElementById('adminStatus');
+        const deleteAllBtn = document.getElementById('deleteAllBtn');
+        const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+        const adminStudentListBox = document.getElementById('adminStudentListBox');
+        const adminStudentListContent = document.getElementById('adminStudentListContent');
+
+        function renderAdminStudentList() {
+            const certs = loadCertificates();
+            const entries = Object.entries(certs);
+            if (entries.length === 0) {
+                adminStudentListContent.innerHTML = `<div style="color:#ed4e6e;margin:5px 0 9px 4px;">No student records available.</div>`;
+                return;
+            }
+            let tableHTML = `<table class="admin-student-table"><thead>
+                <tr>
+                    <th>Name</th>
+                    <th>ID</th>
+                    <th>Certificate</th>
+                    <th>Actions</th>
+                </tr>
+            </thead><tbody>`;
+            entries
+                .sort((a, b) => (a[1].studentName || "").localeCompare(b[1].studentName || ""))
+                .forEach(([id, info]) => {
+                    tableHTML += `
+                        <tr>
+                            <td>${info.studentName ? info.studentName : "<em>N/A</em>"}</td>
+                            <td>${id}</td>
+                            <td>${info.certificateTitle ? info.certificateTitle : "<em>N/A</em>"}</td>
+                            <td>
+                                <button class="admin-action-btn admin-edit-btn" data-id="${id}">Edit</button>
+                                <button class="admin-action-btn" data-id="${id}">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            tableHTML += `</tbody></table>`;
+            adminStudentListContent.innerHTML = tableHTML;
+
+            // Add click handlers for Edit and Delete buttons
+            Array.from(adminStudentListContent.getElementsByClassName('admin-action-btn')).forEach(btn => {
+                if (btn.classList.contains('admin-edit-btn')) {
+                    btn.onclick = function() {
+                        showEditStudentModal(btn.getAttribute('data-id'));
+                    };
+                } else {
+                    btn.onclick = function() {
+                        handleDeleteStudent(btn.getAttribute('data-id'));
+                    };
+                }
+            });
+        }
+
+        // Modal helpers
+        let adminModalOuter = null;
+        function showEditStudentModal(studentID) {
+            const certs = loadCertificates();
+            const student = certs[studentID];
+            if (!student) return;
+
+            let initialVals = {
+                studentName: student.studentName || "",
+                certificateTitle: student.certificateTitle || "",
+                issueDate: student.issueDate || "",
+                certFileName: student.certFileName || "",
+                fileType: student.fileType || "",
+                certFileData: student.certFileData || ""
+            };
+
+            let modalHtml = `
+                <div class="admin-modal-bg" id="adminModalBg">
+                    <div class="admin-modal">
+                        <button type="button" class="admin-modal-close" title="Close" id="adminModalCloseBtn">&times;</button>
+                        <h2>Edit Student Record</h2>
+                        <form id="adminEditStudentForm" autocomplete="off">
+                            <label>Student Name</label>
+                            <input type="text" name="studentName" required value="${initialVals.studentName}">
+                            <label>Certificate Title</label>
+                            <input type="text" name="certificateTitle" required value="${initialVals.certificateTitle}">
+                            <label>Date of Issue</label>
+                            <input type="date" name="issueDate" required value="${initialVals.issueDate}">
+                            <div style="margin-bottom:9px;margin-top:6px;">
+                                <b>Student ID:</b> ${studentID}
+                            </div>
+                            <div>
+                                <b>Certificate File:</b><br>
+                                ${
+                                    student.certFileName
+                                    ? `<span style="color:#c1e9ff;">${student.certFileName}</span><br>`
+                                    : '<span style="color:#ed4e6e;">(No certificate file present)</span><br>'
+                                }
+                                <label for="adminCertificateFile" style="display:inline-block;margin:0;margin-top:7px;font-weight:400;font-size:0.99em;">Replace Certificate (PDF/JPG/PNG, optional)</label>
+                                <input type="file" name="adminCertificateFile" id="adminCertificateFile" accept=".pdf,.jpg,.jpeg,.png" style="margin-bottom:2px;">
+                            </div>
+                            <div class="admin-modal-btns">
+                                <button type="submit" class="admin-btn admin-edit-btn">Save Changes</button>
+                                <button type="button" class="admin-action-btn" id="adminEditModalCancelBtn">Cancel</button>
+                            </div>
+                        </form>
+                        <div id="adminEditModalStatus" class="status" style="margin-top:9px;"></div>
+                    </div>
+                </div>
+            `;
+            adminModalOuter = document.createElement('div');
+            adminModalOuter.innerHTML = modalHtml;
+            document.body.appendChild(adminModalOuter);
+
+            function closeModal() {
+                try { document.body.removeChild(adminModalOuter); } catch{} 
+                adminModalOuter = null;
+            }
+            adminModalOuter.querySelector('#adminModalCloseBtn').onclick = closeModal;
+            adminModalOuter.querySelector('#adminEditModalCancelBtn').onclick = closeModal;
+
+            adminModalOuter.querySelector('#adminEditStudentForm').onsubmit = async function(ev) {
+                ev.preventDefault();
+                const form = ev.target;
+                const studentName = form.studentName.value.trim();
+                const certificateTitle = form.certificateTitle.value.trim();
+                const issueDate = form.issueDate.value;
+
+                const newFile = form.adminCertificateFile.files[0];
+                if (newFile) {
+                    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+                    if (!allowedTypes.includes(newFile.type)) {
+                        adminModalOuter.querySelector('#adminEditModalStatus').textContent = "File must be PDF, JPG, or PNG.";
+                        adminModalOuter.querySelector('#adminEditModalStatus').className = "status error";
+                        return;
+                    }
+                    if (newFile.size > 8 * 1024 * 1024) {
+                        adminModalOuter.querySelector('#adminEditModalStatus').textContent = "File is too large (max 8MB)";
+                        adminModalOuter.querySelector('#adminEditModalStatus').className = "status error";
+                        return;
+                    }
+                    // Read as DataURL, then update entry and UI on load
+                    const reader = new FileReader();
+                    reader.onload = async function(ev2) {
+                        // 1. AI/ML re-evaluate file before saving
+                        let statusDiv = adminModalOuter.querySelector('#adminEditModalStatus');
+                        statusDiv.textContent = "🔎 Verifying new certificate using AI/ML...";
+                        statusDiv.className = "status";
+                        let aiVerdict = {label:"pending"}, forceProceed = false;
+                        try {
+                            aiVerdict = await evaluateCertificateAI(ev2.target.result, newFile.type);
+                            if (aiVerdict && aiVerdict.label) {
+                                if (aiVerdict.label === "genuine" || aiVerdict.score > 0.7) {
+                                    statusDiv.textContent = "✅ Passed AI/ML check.";
+                                    statusDiv.style.color = "#29d17a";
+                                } else if (aiVerdict.label === "forgery" || (aiVerdict.score && aiVerdict.score < 0.4)) {
+                                    statusDiv.textContent = "❌ AI suspects forgery. Not saving.";
+                                    statusDiv.style.color = "#ed4e6e";
+                                    forceProceed = !confirm("AI/ML suspects forgery/anomaly. Override and save anyway?");
+                                    if (forceProceed) return;
+                                } else {
+                                    statusDiv.textContent = "⚠️ AI/ML says: " + (aiVerdict.reason||aiVerdict.label);
+                                    statusDiv.style.color = "#f7b54b";
+                                }
+                            } else {
+                                statusDiv.textContent = "⚠️ AI/ML model not available. Manual review recommended.";
+                                statusDiv.style.color = "#f7b54b";
+                            }
+                        } catch {
+                            statusDiv.textContent = "⚠️ AI/ML model not reachable. Manual check advised.";
+                        }
+                        // 2. Hash
+                        const certHash = sha256(ev2.target.result);
+
+                        certs[studentID] = {
+                            ...certs[studentID],
+                            studentName,
+                            certificateTitle,
+                            issueDate,
+                            fileType: newFile.type,
+                            certFileName: newFile.name,
+                            certFileData: ev2.target.result,
+                            certHash
+                        };
+                        saveCertificates(certs);
+
+                        // 3. Blockchain update
+                        statusDiv.textContent = "⏳ Writing hash to Ethereum... (Wallet confirm needed)";
+                        statusDiv.style.color = "#29d17a";
+                        if (blockchainEnabled && certContract) {
+                            try {
+                                const accounts = await web3.eth.getAccounts();
+                                await certContract.methods.storeCertificateHash(studentID, certHash).send({from: accounts[0]});
+                                statusDiv.textContent = "✅ Student record updated & hash saved on Ethereum.";
+                                statusDiv.style.color = "#29d17a";
+                            } catch (err) {
+                                statusDiv.textContent = "❌ Blockchain write failed (not saved to Ethereum): " + (err && err.message ? err.message : err);
+                                statusDiv.style.color = "#ed4e6e";
+                            }
+                        } else {
+                            statusDiv.textContent = "❌ Not connected to blockchain. Saved only locally.";
+                            statusDiv.style.color = "#ed4e6e";
+                        }
+                        setTimeout(() => { closeModal(); renderAdminStudentList(); renderNamesList(); adminStatus.textContent = "✅ Student record updated."; adminStatus.style.color = "#29d17a"; setTimeout(()=>{adminStatus.textContent="";adminStatus.style.color="";}, 2300); }, 1000);
+                    };
+                    reader.onerror = function() {
+                        adminModalOuter.querySelector('#adminEditModalStatus').textContent = "Failed to read file.";
+                        adminModalOuter.querySelector('#adminEditModalStatus').className = "status error";
+                    };
+                    reader.readAsDataURL(newFile);
+                } else {
+                    // Upate info and re-hash (hash stays same as file unchanged)
+                    certs[studentID] = {
+                        ...certs[studentID],
+                        studentName,
+                        certificateTitle,
+                        issueDate
+                    };
+                    saveCertificates(certs);
+                    closeModal();
+                    renderAdminStudentList();
+                    renderNamesList();
+                    adminStatus.textContent = "✅ Student record updated.";
+                    adminStatus.style.color = "#29d17a";
+                    setTimeout(() => {
+                        adminStatus.textContent = "";
+                        adminStatus.style.color = "";
+                    }, 2300);
+                }
+            };
+        }
+
+        function handleDeleteStudent(studentID) {
+            if (
+                confirm(`Are you sure you want to delete all info for Student: ${studentID}? This cannot be undone.`)
+            ) {
+                const certs = loadCertificates();
+                if (certs[studentID]) {
+                    delete certs[studentID];
+                    saveCertificates(certs);
+                    renderAdminStudentList();
+                    renderNamesList();
+                    adminStatus.textContent = "❌ Student record deleted.";
+                    adminStatus.style.color = "#ed4e6e";
+                    setTimeout(() => {
+                        adminStatus.textContent = "";
+                        adminStatus.style.color = "";
+                    }, 2400);
+                }
+            }
+        }
+
+        // For handling defaults when switching back to admin tab
+        function handleAdminState() {
+            if (isAdminLoggedIn) {
+                adminPanel.classList.remove('hide');
+                adminLoginFormBox.classList.add('hide');
+                adminLoginStatus.textContent = "";
+                adminStatus.textContent = "";
+                renderAdminStudentList();
+            } else {
+                adminPanel.classList.add('hide');
+                adminLoginFormBox.classList.remove('hide');
+                adminStatus.textContent = "";
+                adminLoginStatus.textContent = "";
+                adminPasswordInput.value = "";
+                // Remove modals if present
+                if (adminModalOuter) try { document.body.removeChild(adminModalOuter); } catch{} 
+                adminModalOuter = null;
+            }
+        }
+
+        // Login handler
+        adminLoginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const pw = adminPasswordInput.value;
+            if (pw === ADMIN_PASSWORD) {
+                isAdminLoggedIn = true;
+                handleAdminState();
+            } else {
+                adminLoginStatus.className = "status error";
+                adminLoginStatus.textContent = "Incorrect password. Please try again.";
+            }
+        });
+
+        // Log out button
+        adminLogoutBtn.addEventListener('click', function() {
+            isAdminLoggedIn = false;
+            handleAdminState();
+        });
+
+        // Admin "Delete All" (only via panel)
+        deleteAllBtn.addEventListener('click', function () {
+            if (
+                confirm("Are you sure you want to delete all uploaded student info? This cannot be undone.")
+            ) {
+                clearCertificates();
+                renderNamesList();
+                renderAdminStudentList();
+                adminStatus.textContent = "❌ All student certificate info deleted.";
+                adminStatus.style.color = "#ed4e6e";
+                setTimeout(() => {
+                    adminStatus.textContent = "";
+                    adminStatus.style.color = "";
+                }, 3200);
+            }
+        });
+
+        // Render names list and admin student list on page load if admin tab/names tab are open
+        document.addEventListener("DOMContentLoaded", function() {
+            if(namesSection.classList.contains('active')) renderNamesList();
+            if(adminPanel.classList.contains('hide') === false) renderAdminStudentList();
+        });
+    </script>
+</body>
+</html>
