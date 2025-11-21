@@ -14,3 +14,4 @@ wrapt
 packaging
 opencv-python-headless
 # if your OCR uses poppler locally, no pip install needed
+numpy
