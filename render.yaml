@@ -1,13 +1,11 @@
 services:
   - type: web
-    name: cert-backend
+    name: cert-platform
     env: python
     plan: free
-    region: oregon
     buildCommand: |
       apt-get update
       apt-get install -y tesseract-ocr poppler-utils
       pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
-    envVars:
-      PYTHON_VERSION: 3.10
+    staticPublishPath: .
